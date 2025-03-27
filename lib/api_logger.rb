@@ -27,7 +27,7 @@ module ApiLogger
       request_params = prepare_params(request_params)
 
       response_body = prepare_response(response_body)
-      
+
       # Create the log entry
       klass = get_model_class
       klass.create(
@@ -38,7 +38,6 @@ module ApiLogger
         error_message: error_message
       )
     rescue => e
-      # Don't let logging errors affect the application
       Rails.logger.error("ApiLogger failed to log request: #{e.message}") if defined?(Rails)
     end
     
