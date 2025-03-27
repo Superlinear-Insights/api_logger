@@ -13,7 +13,7 @@ A simple yet powerful gem for logging API requests and responses in Rails applic
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'api_logger'
+gem 'api_logger', github: 'Superlinear-Insights/api_logger'
 ```
 
 And then execute:
