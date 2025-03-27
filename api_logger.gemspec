@@ -13,9 +13,18 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://github.com/yourusername/api_logger"
   spec.license       = "MIT"
 
-  spec.files         = Dir.chdir(File.expand_path('..', __FILE__)) do
-    `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
-  end
+  # Specify which files should be added to the gem when it is released.
+  # The `git ls-files -z` loads the RSpec files which we don't want to include
+  spec.files = Dir.glob(%w[
+    lib/**/*.rb
+    lib/**/*.rake
+    lib/**/*.tt
+    README.md
+    LICENSE.txt
+    Gemfile
+    Rakefile
+  ])
+  
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]

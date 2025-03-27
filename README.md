@@ -1,12 +1,15 @@
 # API Logger
 
-A simple yet powerful gem for logging API requests and responses in Rails applications. It automatically stores API interactions in your database with minimal setup.
+A simple gem for logging API requests and responses in Rails applications. It automatically logs all outbound HTTP requests with zero configuration needed.
 
 ## Features
 
-- Log API requests and responses with a single method call
-- Automatic JSON handling for request parameters and response bodies
-- Configurable table name
+- **Automatic Request Logging**: Automatically logs all outbound HTTP requests made using Net::HTTP
+- **Zero Configuration**: Works out of the box with sensible defaults
+- **Flexible Control**: Easy to enable/disable logging through configuration
+- **Comprehensive Logging**: Captures request parameters, response bodies, status codes, and errors
+- **Database Storage**: All logs are stored in your database for easy querying
+- **Rails Integration**: Seamlessly integrates with your Rails application
 
 ## Installation
 
@@ -24,68 +27,143 @@ $ rails generate api_logger:install
 $ rails db:migrate
 ```
 
-## Basic Usage
-
-Simply call the logger in your API client code:
-
-```ruby
-def fetch_user_data(user_id)
-  response = api_client.get("/users/#{user_id}")
-  
-  ApiLogger.log(
-    endpoint: "/users/#{user_id}",
-    request_params: { user_id: user_id },
-    response_body: response.body,
-    response_status: response.status,
-    error_message: response.error? ? response.error_message : nil
-  )
-  
-  response.body
-end
-```
-
 ## Configuration
 
-Create an initializer (`config/initializers/api_logger.rb`):
+By default, the gem works without any configuration. However, you can customize its behavior by creating an initializer (`config/initializers/api_logger.rb`):
 
 ```ruby
 ApiLogger.configure do |config|
-  config.table_name = 'api_logs' # default
-  config.enabled = true # default
+  # The database table where logs will be stored
+  config.table_name = 'api_logs'  # default
+
+  # Enable/disable all logging functionality
+  config.enabled = true  # default
+
+  # Enable/disable automatic request logging via middleware
+  config.use_middleware = true  # default
 end
 ```
 
-## Database Schema
+### Configuration Options
 
-The gem creates a table with the following structure:
+- `table_name`: The name of the database table where logs will be stored
+- `enabled`: Master switch to enable/disable all logging functionality
+- `use_middleware`: Controls automatic logging of HTTP requests
+  - When `true`: All outbound HTTP requests are automatically logged
+  - When `false`: Only manual logging via `ApiLogger.log` is available
+
+### Configuration Combinations
+
+Here's what happens with different configuration combinations:
 
 ```ruby
-create_table :api_logs do |t|
-  t.string :endpoint, null: false
-  t.jsonb :request_params
-  t.jsonb :response_body
-  t.integer :response_status
-  t.string :error_message
-  t.timestamps
+# 1. Everything enabled (default)
+ApiLogger.configure do |config|
+  config.enabled = true
+  config.use_middleware = true
 end
+# Outcome: Both automatic and manual logging work
 
-add_index :api_logs, :endpoint
-add_index :api_logs, :created_at
-add_index :api_logs, :response_status
+# 2. Only manual logging
+ApiLogger.configure do |config|
+  config.enabled = true
+  config.use_middleware = false
+end
+# Outcome: Only ApiLogger.log calls will work, automatic logging disabled
+
+# 3. Everything disabled
+ApiLogger.configure do |config|
+  config.enabled = false  # This is the master switch
+  config.use_middleware = true  # This setting doesn't matter when enabled = false
+end
+# Outcome: All logging is disabled, both ApiLogger.log calls and automatic logging will be silently ignored
 ```
 
-## Extending Functionality
+## Usage
 
-While the gem creates the model dynamically, you can add your own methods by creating a model file in your application:
+### Automatic Request Logging
+
+With default configuration, any HTTP request made using Net::HTTP will be automatically logged:
 
 ```ruby
-# app/models/api_log.rb
-class ApiLog < ActiveRecord::Base
-  # Add your custom methods here
-  scope :recent, -> { order(created_at: :desc) }
-  
-  def formatted_response
-    JSON.pretty_generate(response_body) rescue response_body.to_s
-  end
+# These requests will be automatically logged
+uri = URI('https://api.example.com/users')
+response = Net::HTTP.get_response(uri)
+
+# POST request
+http = Net::HTTP.new(uri.host, uri.port)
+http.use_ssl = true
+request = Net::HTTP::Post.new(uri.path, 'Content-Type' => 'application/json')
+request.body = { name: 'John' }.to_json
+response = http.request(request)
+```
+
+### Disabling Automatic Logging
+
+If you want to disable automatic logging while keeping the ability to log manually:
+
+```ruby
+# In config/initializers/api_logger.rb
+ApiLogger.configure do |config|
+  config.use_middleware = false  # Disables automatic logging
+  config.enabled = true         # Keeps manual logging available
 end
+```
+
+### Manual Logging
+
+You can also log requests manually when needed:
+
+```ruby
+ApiLogger.log(
+  endpoint: '/api/users',
+  request_params: { user_id: 123 },
+  response_body: { name: 'John' },
+  response_status: 200,
+  error_message: nil  # optional, for failed requests
+)
+```
+
+### Accessing Logs
+
+Logs are accessible through the `ApiLog` model:
+
+```ruby
+# Get the most recent log
+ApiLog.last
+
+# Get recent logs
+ApiLog.order(created_at: :desc)
+
+# Find logs for a specific endpoint
+ApiLog.where(endpoint: '/api/users')
+
+# Get failed requests (status >= 400)
+ApiLog.where('response_status >= ?', 400)
+
+# Get successful requests
+ApiLog.where('response_status < ?', 400)
+```
+
+### Log Data Structure
+
+Each log entry contains:
+- `endpoint`: The API endpoint that was called
+- `request_params`: Parameters sent with the request (stored as JSON)
+- `response_body`: The response received (stored as JSON)
+- `response_status`: HTTP status code of the response
+- `error_message`: Error message (for failed requests)
+- `created_at`: When the log was created
+- `updated_at`: When the log was last updated
+
+## Maintenance
+
+To clean up old logs, use the provided rake task:
+
+```bash
+# Clean logs older than 30 days (default)
+rails api_logger:clean
+
+# Clean logs older than N days
+DAYS=7 rails api_logger:clean
 ```
