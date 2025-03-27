@@ -1,0 +1,16 @@
+class Create<%= ApiLogger.config.table_name.camelize %> < ActiveRecord::Migration<%= Rails::VERSION::MAJOR >= 5 ? "[#{Rails::VERSION::MAJOR}.#{Rails::VERSION::MINOR}]" : "" %>
+  def change
+    create_table :<%= ApiLogger.config.table_name %> do |t|
+      t.string :endpoint, null: false
+      t.jsonb :request_params
+      t.jsonb :response_body
+      t.integer :response_status
+      t.string :error_message
+      t.timestamps
+    end
+    
+    add_index :<%= ApiLogger.config.table_name %>, :endpoint
+    add_index :<%= ApiLogger.config.table_name %>, :created_at
+    add_index :<%= ApiLogger.config.table_name %>, :response_status
+  end
+end

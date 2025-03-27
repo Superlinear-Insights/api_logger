@@ -1,0 +1,1 @@
+require 'generators/api_logger/install/install_generator' 
