@@ -8,7 +8,6 @@ A simple gem for logging API requests and responses in Rails applications. It au
 - **Zero Configuration**: Works out of the box with sensible defaults
 - **Flexible Control**: Easy to enable/disable logging through configuration
 - **Comprehensive Logging**: Captures request parameters, response bodies, status codes, and errors
-- **Selective Logging**: Control which routes and hosts to log
 - **Database Storage**: All logs are stored in your database for easy querying
 - **Rails Integration**: Seamlessly integrates with your Rails application
 
@@ -71,36 +70,6 @@ end
 - `use_middleware`: Controls automatic logging of HTTP requests
 - `exclude_routes`: Array of strings or regexes for routes that should not be logged
 - `allowed_hosts`: Array of strings or regexes for hosts that should be logged (empty means log all)
-
-### Route and Host Filtering
-
-The gem provides two ways to control what gets logged:
-
-1. **Route Exclusions** (`exclude_routes`):
-   - Specify routes that should never be logged
-   - Useful for sensitive endpoints like authentication
-   - Supports both exact string matches and regex patterns
-   ```ruby
-   config.exclude_routes = [
-     '/signin',          # Don't log sign-in attempts
-     '/signup',          # Don't log sign-ups
-     /^\/admin.*/,       # Don't log admin routes
-     /.*\/sensitive.*/   # Don't log routes with 'sensitive' in them
-   ]
-   ```
-
-2. **Host Filtering** (`allowed_hosts`):
-   - Specify which hosts to log requests for
-   - Empty array means log all hosts
-   - Useful to log only your application's API calls
-   ```ruby
-   config.allowed_hosts = [
-     'api.yourdomain.com',           # Production API
-     /.*\.yourdomain\.com$/,         # All your subdomains
-     'localhost',                     # Local development
-     '127.0.0.1'                     # Local development
-   ]
-   ```
 
 ### Configuration Examples
 
