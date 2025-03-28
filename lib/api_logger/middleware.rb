@@ -14,10 +14,14 @@ module ApiLogger
           # Call original request method
           response = original_request_method.bind(self).call(req, body, &block)
 
-          # Only log if middleware is enabled
-          if ApiLogger.configuration.enabled && ApiLogger.configuration.use_middleware
+          host = req['host'] || req.uri&.host
+          # Get the full request path
+          request_path = get_full_request_path(req)
+
+          # Only log if route should be logged
+          if ApiLogger.configuration.should_log_route?(request_path, host)
             ApiLogger.log(
-              endpoint: req.path,
+              endpoint: request_path,
               http_method: req.method,
               request_params: req.body || body,
               request_headers: req.each_header.to_h,
@@ -29,10 +33,14 @@ module ApiLogger
 
           response
         rescue StandardError => e
-          # Only log if middleware is enabled
-          if ApiLogger.configuration.enabled && ApiLogger.configuration.use_middleware
+          # Get the full request path
+          host = req['host'] || req.uri&.host
+          request_path = get_full_request_path(req)
+
+          # Only log if route should be logged
+          if ApiLogger.configuration.should_log_route?(request_path, host)
             ApiLogger.log(
-              endpoint: req.path,
+              endpoint: request_path,
               http_method: req.method,
               request_params: req.body || body,
               request_headers: req.each_header.to_h,
@@ -41,11 +49,27 @@ module ApiLogger
           end
           raise e
         end
+
+        private
+
+        def get_full_request_path(req)
+          return req.path if req.path.start_with?('/')
+
+          uri = req.uri
+          return '/' unless uri
+
+          # Get the path from the URI
+          path = uri.path
+          path = '/' if path.blank? || path.empty?
+
+          # Add query string if present
+          path += "?#{uri.query}" if uri.query
+
+          path
+        end
       end
     end
 
-    def call(env)
-      @app.call(env)
-    end
+    delegate :call, to: :@app
   end
 end
