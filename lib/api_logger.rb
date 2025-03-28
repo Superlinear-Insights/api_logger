@@ -1,8 +1,10 @@
 require 'api_logger/version'
 require 'api_logger/configuration'
+require 'api_logger/middleware'
 require 'api_logger/railtie' if defined?(Rails)
 require 'api_logger/generators' if defined?(Rails)
 
+# :nodoc:
 module ApiLogger
   class Error < StandardError; end
 
