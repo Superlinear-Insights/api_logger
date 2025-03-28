@@ -19,8 +19,11 @@ module ApiLogger
             if ApiLogger.configuration.enabled && ApiLogger.configuration.use_middleware
               ApiLogger.log(
                 endpoint: req.path,
+                http_method: req.method,
                 request_params: req.body || body,
+                request_headers: req.each_header.to_h,
                 response_body: response.body,
+                response_headers: response.each_header.to_h,
                 response_status: response.code.to_i
               )
             end
@@ -31,7 +34,9 @@ module ApiLogger
             if ApiLogger.configuration.enabled && ApiLogger.configuration.use_middleware
               ApiLogger.log(
                 endpoint: req.path,
+                http_method: req.method,
                 request_params: req.body || body,
+                request_headers: req.each_header.to_h,
                 error_message: e.message
               )
             end

@@ -2,14 +2,18 @@ class Create<%= ApiLogger.config.table_name.camelize %> < ActiveRecord::Migratio
   def change
     create_table :<%= ApiLogger.config.table_name %> do |t|
       t.string :endpoint, null: false
+      t.string :http_method
       t.jsonb :request_params
+      t.jsonb :request_headers
+      t.jsonb :response_headers
       t.jsonb :response_body
       t.integer :response_status
       t.string :error_message
       t.timestamps
     end
-    
+
     add_index :<%= ApiLogger.config.table_name %>, :endpoint
+    add_index :<%= ApiLogger.config.table_name %>, :http_method
     add_index :<%= ApiLogger.config.table_name %>, :created_at
     add_index :<%= ApiLogger.config.table_name %>, :response_status
   end
