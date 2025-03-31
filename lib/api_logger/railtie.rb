@@ -29,8 +29,13 @@ module ApiLogger
     # Load middleware as early as possible
     initializer "api_logger.configure_middleware", before: :load_config_initializers do |app|
       if ApiLogger.configuration.enabled && ApiLogger.configuration.use_middleware
-        Rails.logger.info "Adding ApiLogger middleware to Rails" if defined?(Rails)
         app.middleware.use ApiLogger::Middleware
+        
+        # Apply the patch immediately
+        unless Net::HTTP.method_defined?(:request_with_api_logger)
+          middleware = ApiLogger::Middleware.new(-> (env) { [200, {}, []] })
+          middleware.send(:apply_http_patch)
+        end
       end
     end
   end
