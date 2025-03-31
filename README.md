@@ -2,6 +2,9 @@
 
 A simple gem for logging API requests and responses in Rails applications. It automatically logs all outbound HTTP requests with zero configuration needed.
 
+## Overview
+![alt text](diagram.png "Title")
+
 ## Features
 
 - **Automatic Request Logging**: Automatically logs all outbound HTTP requests made using Net::HTTP
