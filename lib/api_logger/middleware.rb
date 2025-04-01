@@ -24,18 +24,18 @@ module ApiLogger
           
           # Define our wrapper method
           def request_with_api_logger(req, body = nil, &block)
-            # Prevent recursion
+            # Skip if we're already processing a request
             if Thread.current[:api_logger_active]
               return request_without_api_logger(req, body, &block)
             end
-            
+
             Thread.current[:api_logger_active] = true
             begin
               # Call the existing chain (which might include Sentry's instrumentation)
               response = request_without_api_logger(req, body, &block)
               
-              # Only log after we get the response
-              host = req['host'] || self.address
+              # Extract the actual host from the request
+              host = extract_host(req)
               path = req.path
               
               if ApiLogger.configuration.should_log_route?(path, host)
@@ -53,7 +53,7 @@ module ApiLogger
               response
             rescue => e
               # Log errors
-              host = req['host'] || self.address
+              host = extract_host(req)
               path = req.path
               
               if ApiLogger.configuration.should_log_route?(path, host)
@@ -74,6 +74,18 @@ module ApiLogger
           
           # Complete the method chain
           alias_method :request, :request_with_api_logger
+          
+          private
+          
+          def extract_host(req)
+            # Try to get host from URI first
+            if req.uri
+              return req.uri.host
+            end
+            
+            # Fallback to host header or address
+            req['host'] || self.address
+          end
         end
       end
     end

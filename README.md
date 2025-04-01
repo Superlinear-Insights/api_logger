@@ -1,18 +1,19 @@
 # API Logger
 
-A simple gem for logging API requests and responses in Rails applications. It automatically logs all outbound HTTP requests with zero configuration needed.
+A simple gem for logging API requests and responses in Rails applications. It automatically logs outbound HTTP requests to specified hosts with zero configuration needed.
 
 ## Overview
 ![alt text](diagram.png "Title")
 
 ## Features
 
-- **Automatic Request Logging**: Automatically logs all outbound HTTP requests made using Net::HTTP
+- **Selective Request Logging**: Logs outbound HTTP requests only to specified hosts
 - **Zero Configuration**: Works out of the box with sensible defaults
 - **Flexible Control**: Easy to enable/disable logging through configuration
 - **Comprehensive Logging**: Captures request parameters, response bodies, status codes, and errors
 - **Database Storage**: All logs are stored in your database for easy querying
 - **Rails Integration**: Seamlessly integrates with your Rails application
+- **Stack Safe**: Prevents recursive logging and stack overflow issues
 
 ## Installation
 
@@ -32,7 +33,7 @@ $ rails db:migrate
 
 ## Configuration
 
-By default, the gem works without any configuration. However, you can customize its behavior by creating an initializer (`config/initializers/api_logger.rb`):
+Configure which hosts to log by creating an initializer (`config/initializers/api_logger.rb`):
 
 ```ruby
 ApiLogger.configure do |config|
@@ -45,23 +46,10 @@ ApiLogger.configure do |config|
   # Enable/disable automatic request logging via middleware
   config.use_middleware = true  # default
 
-  # Exclude specific routes from being logged
-  config.exclude_routes = [
-    '/signin',           # Exact match
-    '/signup',
-    '/signout',
-    /^\/health.*/,      # Regex pattern
-    /^\/metrics.*/
-  ]
-
-  # Only log requests to specific hosts (empty array means log all hosts)
+  # Specify which hosts to log (empty array means log nothing)
   config.allowed_hosts = [
-    'api.yourdomain.com',
-    'api.staging.yourdomain.com',
-    /.*\.yourdomain\.com$/,  # All subdomains
-    'localhost',             # Local development
-    '127.0.0.1',
-    '::1'                   # IPv6 localhost
+    'services.mfcentral.com',
+    'uatservices.mfcentral.com'
   ]
 end
 ```
@@ -71,80 +59,24 @@ end
 - `table_name`: The name of the database table where logs will be stored
 - `enabled`: Master switch to enable/disable all logging functionality
 - `use_middleware`: Controls automatic logging of HTTP requests
-- `exclude_routes`: Array of strings or regexes for routes that should not be logged
-- `allowed_hosts`: Array of strings or regexes for hosts that should be logged (empty means log all)
+- `allowed_hosts`: Array of host strings that should be logged (empty means log nothing)
 
-### Configuration Examples
 
-```ruby
-# 1. Log everything except authentication routes
-ApiLogger.configure do |config|
-  config.exclude_routes = ['/signin', '/signup', '/signout']
-end
-
-# 2. Only log requests to your API, ignore third-party services
-ApiLogger.configure do |config|
-  config.allowed_hosts = ['api.yourdomain.com', /.*\.yourdomain\.com$/]
-end
-
-# 3. Combine both for precise control
-ApiLogger.configure do |config|
-  # Only log your API calls
-  config.allowed_hosts = ['api.yourdomain.com']
-  
-  # But don't log sensitive routes
-  config.exclude_routes = [
-    '/signin',
-    '/signup',
-    '/signout',
-    /\/users\/\d+\/sensitive/
-  ]
-end
-```
 
 ## Usage
 
 ### Automatic Request Logging
 
-With default configuration, any HTTP request made using Net::HTTP will be automatically logged (unless excluded by route or host filters):
+With default configuration, any HTTP request to allowed hosts will be automatically logged:
 
 ```ruby
-# These requests will be logged if they match your configuration
-uri = URI('https://api.yourdomain.com/users')
+# This request WILL be logged
+uri = URI('https://services.mfcentral.com/api/v1/users')
 response = Net::HTTP.get_response(uri)
 
-# POST request
-http = Net::HTTP.new(uri.host, uri.port)
-http.use_ssl = true
-request = Net::HTTP::Post.new(uri.path, 'Content-Type' => 'application/json')
-request.body = { name: 'John' }.to_json
-response = http.request(request)
-```
-
-### Disabling Automatic Logging
-
-If you want to disable automatic logging while keeping the ability to log manually:
-
-```ruby
-# In config/initializers/api_logger.rb
-ApiLogger.configure do |config|
-  config.use_middleware = false  # Disables automatic logging
-  config.enabled = true         # Keeps manual logging available
-end
-```
-
-### Manual Logging
-
-You can also log requests manually when needed:
-
-```ruby
-ApiLogger.log(
-  endpoint: '/api/users',
-  request_params: { user_id: 123 },
-  response_body: { name: 'John' },
-  response_status: 200,
-  error_message: nil  # optional, for failed requests
-)
+# This request will NOT be logged
+uri = URI('https://api.other-service.com/users')
+response = Net::HTTP.get_response(uri)
 ```
 
 ### Accessing Logs
@@ -159,7 +91,7 @@ ApiLog.last
 ApiLog.order(created_at: :desc)
 
 # Find logs for a specific endpoint
-ApiLog.where(endpoint: '/api/users')
+ApiLog.where(endpoint: '/api/v1/users')
 
 # Get failed requests (status >= 400)
 ApiLog.where('response_status >= ?', 400)

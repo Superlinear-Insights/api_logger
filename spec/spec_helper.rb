@@ -30,8 +30,9 @@ RSpec.configure do |config|
   config.before do
     ApiLogger.configure do |c|
       c.enabled = true
-      c.exclude_routes = []
-      c.exclude_hosts = []
+      c.use_middleware = true
+      c.table_name = 'api_logs'
+      c.allowed_hosts = []
     end
   end
 end
