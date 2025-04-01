@@ -31,7 +31,6 @@ RSpec.configure do |config|
     ApiLogger.configure do |c|
       c.enabled = true
       c.use_middleware = true
-      c.table_name = 'api_logs'
       c.allowed_hosts = []
     end
   end
