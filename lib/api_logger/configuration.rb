@@ -1,12 +1,15 @@
 module ApiLogger
   class Configuration
-    attr_accessor :table_name, :enabled, :use_middleware, :allowed_hosts
+    attr_accessor :table_name, :enabled, :use_middleware, :allowed_hosts, :exclude_hosts, :exclude_routes
 
     def initialize
       @table_name = 'api_logs'
       @enabled = true
       @use_middleware = true
-      @allowed_hosts = []
+      @allowed_hosts = ['services.mfcentral.com', 'uatservices.mfcentral.com']
+      # backwards compatibility, to be removed in next release.
+      @exclude_hosts = []
+      @exclude_routes = []
     end
 
     def should_log_route?(path, host = nil)
